@@ -7,11 +7,10 @@ require("dotenv").config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
-// Chuẩn hóa chuỗi tiếng Việt để tìm kiếm không dấu
+// Chuẩn hóa tiếng Việt để tìm kiếm không dấu
 function normalizeText(value = "") {
   return String(value)
     .normalize("NFD")
@@ -22,7 +21,6 @@ function normalizeText(value = "") {
     .trim();
 }
 
-// Tạo nội dung phục vụ tìm kiếm
 function buildSearchText(food) {
   return normalizeText(
     [
@@ -110,14 +108,12 @@ const foodSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Tự tạo lại searchText khi lưu món ăn
 foodSchema.pre("validate", function () {
   this.searchText = buildSearchText(this);
 });
 
 const Food = mongoose.model("Food", foodSchema);
 
-// Các trường được phép gửi lên API
 const allowedFields = [
   "foodId",
   "name",
@@ -153,16 +149,16 @@ function validateFoodBody(body, isUpdate = false) {
     return "Không được thay đổi mã món ăn";
   }
 
-  const requiredFields = [
-    "foodId",
-    "name",
-    "category",
-    "cuisine",
-    "price",
-    "quantity",
-  ];
-
   if (!isUpdate) {
+    const requiredFields = [
+      "foodId",
+      "name",
+      "category",
+      "cuisine",
+      "price",
+      "quantity",
+    ];
+
     for (const field of requiredFields) {
       if (
         body[field] === undefined ||
@@ -181,6 +177,13 @@ function validateFoodBody(body, isUpdate = false) {
     ) {
       return "ingredients phải là một mảng chuỗi";
     }
+  }
+
+  if (
+    body.imageUrl !== undefined &&
+    typeof body.imageUrl !== "string"
+  ) {
+    return "imageUrl phải là chuỗi";
   }
 
   for (const field of ["price", "quantity"]) {
@@ -220,7 +223,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Kiểm tra kết nối
+// Kiểm tra backend và MongoDB
 app.get("/health", (req, res) => {
   const connected = mongoose.connection.readyState === 1;
 
@@ -233,7 +236,7 @@ app.get("/health", (req, res) => {
   });
 });
 
-// GET /api/foods?search=pho
+// Lấy danh sách món ăn và tìm kiếm
 app.get("/api/foods", async (req, res, next) => {
   try {
     const search =
@@ -275,7 +278,7 @@ app.get("/api/foods", async (req, res, next) => {
   }
 });
 
-// GET /api/foods/:id
+// Lấy chi tiết món ăn
 app.get("/api/foods/:id", async (req, res, next) => {
   try {
     const food = await Food.findOne({ foodId: req.params.id });
@@ -296,7 +299,7 @@ app.get("/api/foods/:id", async (req, res, next) => {
   }
 });
 
-// POST /api/foods
+// Thêm món ăn
 app.post("/api/foods", async (req, res, next) => {
   try {
     const validationError = validateFoodBody(req.body);
@@ -308,7 +311,17 @@ app.post("/api/foods", async (req, res, next) => {
       });
     }
 
-    const food = await Food.create(req.body);
+    const payload = { ...req.body };
+
+    if (typeof payload.imageUrl === "string") {
+      payload.imageUrl = payload.imageUrl.trim();
+    }
+
+    const food = await Food.create(payload);
+
+    console.log(
+      `[POST] ${food.foodId} | imageUrl: ${food.imageUrl || "(trống)"}`
+    );
 
     res.status(201).json({
       success: true,
@@ -327,9 +340,14 @@ app.post("/api/foods", async (req, res, next) => {
   }
 });
 
-// PUT /api/foods/:id
+// Cập nhật món ăn, bao gồm hình ảnh
 app.put("/api/foods/:id", async (req, res, next) => {
   try {
+    const foodId = req.params.id;
+
+    console.log(`[PUT] Nhận yêu cầu cập nhật ${foodId}`);
+    console.log("[PUT] imageUrl nhận được:", req.body?.imageUrl);
+
     const validationError = validateFoodBody(req.body, true);
 
     if (validationError) {
@@ -339,9 +357,7 @@ app.put("/api/foods/:id", async (req, res, next) => {
       });
     }
 
-    const food = await Food.findOne({
-      foodId: req.params.id,
-    });
+    const food = await Food.findOne({ foodId });
 
     if (!food) {
       return res.status(404).json({
@@ -350,13 +366,31 @@ app.put("/api/foods/:id", async (req, res, next) => {
       });
     }
 
-    Object.assign(food, req.body);
+    // Chỉ cập nhật các trường được gửi lên.
+    for (const field of allowedFields) {
+      if (Object.hasOwn(req.body, field) && field !== "foodId") {
+        food.set(
+          field,
+          field === "imageUrl" && typeof req.body[field] === "string"
+            ? req.body[field].trim()
+            : req.body[field]
+        );
+      }
+    }
+
     await food.save();
+
+    // Đọc lại dữ liệu đã lưu trực tiếp từ MongoDB
+    const savedFood = await Food.findOne({ foodId }).lean();
+
+    console.log(
+      `[PUT] Đã lưu ${foodId} | imageUrl: ${savedFood?.imageUrl || "(trống)"}`
+    );
 
     res.status(200).json({
       success: true,
       message: "Cập nhật món ăn thành công",
-      data: food,
+      data: savedFood,
     });
   } catch (error) {
     if (error.code === 11000) {
@@ -370,7 +404,7 @@ app.put("/api/foods/:id", async (req, res, next) => {
   }
 });
 
-// DELETE /api/foods/:id
+// Xóa món ăn
 app.delete("/api/foods/:id", async (req, res, next) => {
   try {
     const food = await Food.findOneAndDelete({
@@ -393,7 +427,7 @@ app.delete("/api/foods/:id", async (req, res, next) => {
   }
 });
 
-// Route không tồn tại
+// Đường dẫn không tồn tại
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -401,9 +435,9 @@ app.use((req, res) => {
   });
 });
 
-// Xử lý lỗi
+// Xử lý lỗi tập trung
 app.use((error, req, res, next) => {
-  console.error("Lỗi API:", error.message);
+  console.error("Lỗi API:", error);
 
   if (error.type === "entity.parse.failed") {
     return res.status(400).json({
@@ -427,10 +461,11 @@ app.use((error, req, res, next) => {
   res.status(500).json({
     success: false,
     message: "Lỗi máy chủ nội bộ",
+    error: error.message,
   });
 });
 
-// Kết nối MongoDB và cập nhật dữ liệu tìm kiếm cũ
+// Khởi động server
 async function startServer() {
   try {
     if (!process.env.MONGODB_URI) {
@@ -440,7 +475,7 @@ async function startServer() {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log("Đã kết nối MongoDB Atlas");
 
-    // Cập nhật searchText cho các món ăn đã có từ trước
+    // Tạo lại dữ liệu phục vụ tìm kiếm cho các món cũ
     const existingFoods = await Food.find().select("+searchText");
 
     for (const food of existingFoods) {
