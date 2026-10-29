@@ -1,0 +1,16 @@
+
+# Thông tin bí mật
+.env
+.env.*
+!.env.example
+
+# Thư viện và dữ liệu sinh ra khi chạy ứng dụng
+node_modules/
+dist/
+build/
+coverage/
+
+# Tệp hệ điều hành và trình soạn thảo
+.DS_Store
+Thumbs.db
+.vscode/
