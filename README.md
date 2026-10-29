@@ -63,3 +63,10 @@ Chạy container:
 ```bash
 docker run -d --name food-frontend-test -p 8080:80 237536trandinhhoangkien/frontend:latest
 ```
+## Câu 7: Triển khai Frontend trên Render
+
+- Dịch vụ: `web-237536`
+- Nền tảng: Render Static Site
+- Repository: https://github.com/Hoangkien-T290605/237536_TranDinhHoangKien
+- Trạng thái: Deploy succeeded
+- URL: BỔ SUNG URL THỰC TẾ CỦA RENDER
