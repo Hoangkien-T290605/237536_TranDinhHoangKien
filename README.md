@@ -25,8 +25,19 @@ Xây dựng hệ thống quản lý món ăn trên nền tảng đám mây, cho 
 ## 4. Cài đặt và chạy chương trình
 Các hướng dẫn cài đặt và chạy frontend, backend sẽ được cập nhật sau khi hoàn thành phần xây dựng ứng dụng.
 
-## 5. Triển khai
-URL frontend và backend API sẽ được bổ sung sau khi triển khai trên Render.
+## Câu 5: Đóng gói Backend bằng Docker
+
+- Docker Hub: https://hub.docker.com/r/237536trandinhhoangkien/backend
+- Image: `237536trandinhhoangkien/backend:latest`
+- Cổng container: `5000`
+- Kiểm tra API: `http://localhost:5001/health`
+- Kết quả kiểm tra: Backend hoạt động, MongoDB kết nối thành công.
+
+Chạy container kiểm tra:
+
+```bash
+docker run -d --name food-backend-test -p 5001:5000 --env-file .env 237536trandinhhoangkien/backend:latest
+> 
 ## 6. Cơ sở dữ liệu MongoDB Atlas
 
 - **Project:** `237536_TranDinhHoangKien`
