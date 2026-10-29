@@ -27,3 +27,11 @@ Các hướng dẫn cài đặt và chạy frontend, backend sẽ được cập
 
 ## 5. Triển khai
 URL frontend và backend API sẽ được bổ sung sau khi triển khai trên Render.
+## 6. Cơ sở dữ liệu MongoDB Atlas
+
+- **Project:** `237536_TranDinhHoangKien`
+- **Cluster:** `FoodCluster`
+- **Database:** `237536_TranDinhHoangKien`
+- **Collection:** `foods`
+- **Dữ liệu mẫu:** 3 món ăn, gồm Phở bò, Bánh mì thịt và Bún bò Huế.
+- **Bảo mật:** Thông tin kết nối và mật khẩu được lưu trong biến môi trường, không đưa lên GitHub.
